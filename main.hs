@@ -1,6 +1,7 @@
 import System.IO
 import System.Environment
 import System.Random
+import Numeric
 
 data Point = Point { x :: Integer, y :: Integer } deriving (Read, Eq)
 data Curve = Curve { p :: Integer
@@ -18,7 +19,7 @@ instance Show Point where
     show (Point x y) = "Point {\nx: " ++ show x ++ "\ny: " ++ show y ++ "\n}"
 
 instance Show Key where
-    show (Key d q) = "Key {\nd: " ++ show d ++ "\nQ: " ++ show q ++ "\n}"
+    show (Key d q) = "Key {\nd: " ++ show d ++ "\nQ: " ++ toSEC q ++ "\n}"
 
 instance Show Signature where
     show (Signature r s) = "Signature {\nr: " ++ show r ++ "\ns: " ++ show s ++ "\n}"
@@ -41,17 +42,19 @@ main = do
     gen <- getStdGen
     case mode of "-i" -> putStrLn (show curve)
                  "-k" -> putStrLn (show $ generateKey curve gen)
+                 "-s" -> putStrLn (show $ sign curve key hash gen)
+                 "-v" -> putStrLn (show $ verify curve signature key hash)
 
     --putStrLn (show signature)
     --putStrLn (show (fst (randomR (1, n curve) (gen) :: (Integer, StdGen))))
     --putStrLn (show $ addPoints (Point 13 16) (Point 0 0) 1 23)
-    putStrLn (show $ mulPoint (g curve) 91305095057638279798210088207290086814184648949849354342409048655369161716366 (a curve) (p curve))
+    --putStrLn (show $ mulPoint (g curve) 91305095057638279798210088207290086814184648949849354342409048655369161716366 (a curve) (p curve))
     --putStrLn (show $ doublePoint (g curve) (a curve) (p curve))
     return ()
 
 
 getParam :: String -> String -> String
-getParam param input =  head $ tail (dropWhile (/=(param ++ ":")) (words input))
+getParam param input = head $ tail (dropWhile (/=(param ++ ":")) (words input))
 
 parseCurve :: String -> Curve
 parseCurve input = Curve { p= read(getParam "p" input) :: Integer,
@@ -77,6 +80,13 @@ fromSEC input = Point x y
         len = div (length base) 2
         x = read ("0x" ++ take len base) :: Integer
         y = read ("0x" ++ drop len base) :: Integer
+
+toSEC :: Point -> String
+toSEC input = "0x04" ++ take (larger - length x') ['0','0'..] ++ x' ++ take (larger - length y') ['0','0'..] ++ y'
+    where
+        x' = showHex (x input) ""
+        y' = showHex (y input) ""
+        larger = if length x' > length y' then length x' else length y'
 
 
 
@@ -132,6 +142,25 @@ generateKey curve gen = Key d q
     where
         d = fst (randomR (1, n curve) (gen) :: (Integer, StdGen))
         q = mulPoint (g curve) d (a curve) (p curve)
+
+sign :: Curve -> Key -> Hash -> StdGen -> Signature
+sign curve key hash gen = Signature r s
+    where
+        (r,k) = getR curve gen
+        s = mod ((modInv k (p curve)) * (hash + r*(d key))) (n curve)
+
+
+
+
+getR :: Curve -> StdGen -> (Integer, Integer)
+getR curve gen = (r,k)
+    where
+        (kTmp, gen1) = (randomR (1, n curve) (gen) :: (Integer, StdGen))
+        kG = mulPoint (g curve) kTmp (a curve) (p curve)
+        rTmp = mod (x kG) (n curve)
+        (r,k)
+            | rTmp == 0 = getR curve gen1
+            | otherwise = (rTmp,kTmp)
 
 
 
