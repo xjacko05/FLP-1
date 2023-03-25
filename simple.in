@@ -1,0 +1,20 @@
+Curve {
+p: 23
+a: 1
+b: 1
+g: Point {
+x: 13
+y: 16
+}
+n: 7
+h: 1
+}
+Key {
+d: 2
+Q: 0x040513
+}
+Hash: 5
+Signature {
+r: 3
+s: 1
+}
