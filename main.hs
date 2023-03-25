@@ -50,6 +50,7 @@ main = do
     --putStrLn (show $ addPoints (Point 13 16) (Point 0 0) 1 23)
     --putStrLn (show $ mulPoint (g curve) 91305095057638279798210088207290086814184648949849354342409048655369161716366 (a curve) (p curve))
     --putStrLn (show $ doublePoint (g curve) (a curve) (p curve))
+    --putStrLn (show $ addPoints (mulPoint (g curve) 5 (a curve) (p curve)) (mulPoint (q key) 3 (a curve) (p curve)) (a curve) (p curve)) 
     return ()
 
 
@@ -140,22 +141,19 @@ doublePoint p a modulo = Point coorX coorY
 generateKey :: Curve -> StdGen -> Key
 generateKey curve gen = Key d q
     where
-        d = fst (randomR (1, n curve) (gen) :: (Integer, StdGen))
+        d = fst (randomR (1, (n curve) - 1) (gen) :: (Integer, StdGen))
         q = mulPoint (g curve) d (a curve) (p curve)
 
 sign :: Curve -> Key -> Hash -> StdGen -> Signature
 sign curve key hash gen = Signature r s
     where
         (r,k) = getR curve gen
-        s = mod ((modInv k (p curve)) * (hash + r*(d key))) (n curve)
-
-
-
+        s = mod ((modInv k (n curve)) * (hash + r*(d key))) (n curve)
 
 getR :: Curve -> StdGen -> (Integer, Integer)
 getR curve gen = (r,k)
     where
-        (kTmp, gen1) = (randomR (1, n curve) (gen) :: (Integer, StdGen))
+        (kTmp, gen1) = (randomR (1, (n curve) - 1) (gen) :: (Integer, StdGen))
         kG = mulPoint (g curve) kTmp (a curve) (p curve)
         rTmp = mod (x kG) (n curve)
         (r,k)
@@ -163,6 +161,15 @@ getR curve gen = (r,k)
             | otherwise = (rTmp,kTmp)
 
 
+
+verify :: Curve -> Signature -> Key -> Hash -> Bool
+verify curve signature key hash = val
+    where
+        w = mod (modInv (s signature) (n curve)) (n curve)
+        u1 = mod (w*hash) (n curve)
+        u2 = mod ((r signature)*w) (n curve)
+        xy = addPoints (mulPoint (g curve) u1 (a curve) (p curve)) (mulPoint (q key) u2 (a curve) (p curve)) (a curve) (p curve)
+        val = (if mod (r signature) (n curve) == mod (x xy) (n curve) then True else False)
 
 
 
