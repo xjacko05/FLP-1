@@ -1,7 +1,11 @@
-import System.IO
-import System.Environment
-import System.Random
-import Numeric
+--ECDSA
+--FLP 2023
+--Autor: Martin Jacko <xjacko05>
+
+import System.Environment (getArgs)
+import System.Random (StdGen, getStdGen, randomR)
+import Numeric (showHex)
+import Data.Char (toUpper)
 
 data Point = Point { x :: Integer, y :: Integer } deriving (Read, Eq)
 data Curve = Curve { p :: Integer
@@ -16,16 +20,19 @@ data Signature = Signature { r :: Integer, s :: Integer }
 type Hash = Integer
 
 instance Show Point where
-    show (Point x y) = "Point {\nx: " ++ show x ++ "\ny: " ++ show y ++ "\n}"
+    show (Point x y) = "Point {\nx: " ++ toHexString x ++ "\ny: " ++ toHexString y ++ "\n}"
 
 instance Show Key where
-    show (Key d q) = "Key {\nd: " ++ show d ++ "\nQ: " ++ toSEC q ++ "\n}"
+    show (Key d q) = "Key {\nd: " ++ ('0':'x':(showHex d "")) ++ "\nQ: " ++ toSEC q ++ "\n}"
 
 instance Show Signature where
-    show (Signature r s) = "Signature {\nr: " ++ show r ++ "\ns: " ++ show s ++ "\n}"
+    show (Signature r s) = "Signature {\nr: " ++ ('0':'x':(showHex r "")) ++ "\ns: " ++ ('0':'x':(showHex s "")) ++ "\n}"
 
 instance Show Curve where
-    show (Curve p a b g n h) = "Curve {\np: " ++ show p ++ "\na: " ++ show a ++ "\nb: " ++ show b ++ "\ng: " ++ show g ++ "\nn: " ++ show n ++ "\nh: " ++ show h ++ "\n}\n"
+    show (Curve p a b g n h) = "Curve {\np: " ++ toHexString p ++ "\na: " ++ show a ++ "\nb: " ++ show b ++ "\ng: " ++ show g ++ "\nn: " ++ toHexString n ++ "\nh: " ++ show h ++ "\n}"
+
+toHexString :: Integer -> String
+toHexString i = ('0':'x':[toUpper x | x <- (showHex i "")])
 
 main :: IO ()
 main = do
@@ -36,14 +43,12 @@ main = do
     let key = parseKey input
     let signature = parseSignature input
     let hash = parseHash input
-    --putStr (u)
-    --putStr (show c)
-    --putStrLn (show (getParam "y" (words input)))
     gen <- getStdGen
     case mode of "-i" -> putStrLn (show curve)
                  "-k" -> putStrLn (show $ generateKey curve gen)
                  "-s" -> putStrLn (show $ sign curve key hash gen)
                  "-v" -> putStrLn (show $ verify curve signature key hash)
+                 _ -> error "Invalid option used."
 
     --putStrLn (show signature)
     --putStrLn (show (fst (randomR (1, n curve) (gen) :: (Integer, StdGen))))
@@ -104,16 +109,16 @@ parseArgs [x] = (x, "")
 parseArgs [x,y] = (x, y)
 parseArgs _ = error "Agument parsing failed."
 
-getModInverse :: Integer -> Integer -> Integer
-getModInverse value modulo = head [x | x <- [0..(modulo - 1)], mod (value * x) modulo == 1]
+--getModInverse :: Integer -> Integer -> Integer
+--getModInverse value modulo = head [x | x <- [0..(modulo - 1)], mod (value * x) modulo == 1]
 
 addPoints' :: Point -> Point -> Integer -> Integer -> Point
 addPoints' p q a modulo = Point coorX coorY
         where
     s
-        | x p == x q && y p == y q = ((3*(x p)^2 + a) * (modInv (2*y p) modulo)) `mod` modulo
+        | x p == x q && y p == y q = ((3*(x p)*(x p) + a) * (modInv (2*y p) modulo)) `mod` modulo
         | otherwise = ((y p - y q) * (modInv (x p - x q) modulo)) `mod` modulo
-    coorX = mod (s^2 - (x p) - (x q)) modulo
+    coorX = mod (s*s - (x p) - (x q)) modulo
     coorY = mod (s * (x p - coorX) - y p) modulo
 
 addPoints :: Point -> Point -> Integer -> Integer -> Point
@@ -128,13 +133,13 @@ mulPoint :: Point -> Integer -> Integer -> Integer -> Point
 mulPoint p times a modulo
     | times == 0 = Point 0 0
     | mod times 2 == 1 = addPoints (mulPoint (doublePoint p a modulo) (div times 2) a modulo) p a modulo
-    | mod times 2 == 0 = mulPoint (doublePoint p a modulo) (div times 2) a modulo
+    | otherwise = mulPoint (doublePoint p a modulo) (div times 2) a modulo
 
 doublePoint :: Point -> Integer -> Integer -> Point
 doublePoint p a modulo = Point coorX coorY
         where
-    s = mod ((3*(x p)^2 + a) * (modInv (2*(y p)) modulo)) modulo
-    coorX = mod (s^2 - 2*(x p)) modulo
+    s = mod ((3*(x p)*(x p) + a) * (modInv (2*(y p)) modulo)) modulo
+    coorX = mod (s*s - 2*(x p)) modulo
     coorY = mod (s * (x p - coorX) - y p) modulo
 
 
