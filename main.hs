@@ -1,5 +1,5 @@
 --ECDSA
---FLP FUN 2023
+--FLP FUN 2022/2023
 --Autor: Martin Jacko (222092) <xjacko05@stud.fit.vutbr.cz>
 
 import System.Environment (getArgs)

@@ -1,4 +1,4 @@
-# FLP 2023 - funkcionálny projekt: Haskell
+# FLP 2022/2023 - funkcionálny projekt: Haskell
 
 ## Popis
 
@@ -6,7 +6,7 @@ Program napísaný v jazyku Haskell implementujúci ECDSA. Určený pre Haskell 
 
 ## Rozsah implementácie
 
-Program implementuje plnú funkcionalitu podľa zadania, formát vstupov je taktiež v súlade so zadaním (očakávané oddelenie pomocou medzery alebo tabulátoru). Formát výstupov je taktiež podľa zadania (oddelené iba medzerou za názvom parametru nasledovaným dvojbodkou a LF za hodnotou parametra)
+Program implementuje plnú funkcionalitu podľa zadania, formát vstupov je taktiež v súlade so zadaním (očakávané oddelenie pomocou medzery alebo tabulátoru). Formát výstupov je taktiež podľa zadania (oddelené iba medzerou za názvom parametra nasledovaným dvojbodkou a LF za hodnotou parametra).
 
 ## Testovanie
 
@@ -18,7 +18,7 @@ Pre testovanie funkčnosti implementácie bolo vytvorených 7 testov.
 5. Overí podpis s nesprávnym kľúčom
 6. Overí poskytnutý podpis pomocou poskytnutého kľuča (rovnaké ako v zadaní)
 7. Overí nesprávny podpis pomocou poskytnutého kľuča (rovnaké ako v zadaní)
-Pre prípad záujmu sú vstupy a výstupy testov zachované až do vykonania ```bash make clean```
+Pre prípad záujmu sú vstupy a výstupy testov zachované až do vykonania ``` make clean```.
 
 ## Použitie
 
