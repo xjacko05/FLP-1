@@ -8,13 +8,13 @@ import Numeric (showHex)
 import Data.Char (toUpper)
 
 --custom data types
-data Point = Point { x :: Integer, y :: Integer } deriving (Read, Eq)
-data Curve = Curve { p :: Integer
-                   , a :: Integer
-                   , b :: Integer
-                   , g :: Point
-                   , n :: Integer
-                   , h :: Integer
+data Point = Point { x :: Integer, y :: Integer }
+data Curve = Curve { p :: Integer,
+                     a :: Integer,
+                     b :: Integer,
+                     g :: Point,
+                     n :: Integer,
+                     h :: Integer
                    }
 data Key = Key { d :: Integer, q :: Point }
 data Signature = Signature { r :: Integer, s :: Integer }
@@ -45,6 +45,7 @@ toSEC input = "0x04" ++ take (larger - length x') ['0','0'..] ++ x' ++ take (lar
         y' = showHex (y input) ""
         larger = if length x' > length y' then length x' else length y'
 
+--reads inputs and acts accordingly
 main :: IO ()
 main = do
     args <- getArgs
@@ -100,9 +101,7 @@ parseCurve input = checkedCurve
 
 --parses curve from input
 parseKey :: String -> Key
-parseKey input = Key { d= read(getParam "d" input) :: Integer,
-                       q= fromSEC $ getParam "Q" input
-                     }
+parseKey input = Key { d= read(getParam "d" input) :: Integer, q= fromSEC $ getParam "Q" input }
 
 --converts point from SEC uncompressed format to x & y coordinates
 fromSEC :: String -> Point
@@ -149,12 +148,10 @@ euclid a modulo = (gcd', y, x - q * y)
         (gcd', x, y) = euclid modulo r
 
 --auxiliary function for adding points in integer ec arithmetic
-addPoints' :: Point -> Point -> Integer -> Integer -> Point
-addPoints' p q a modulo = Point coorX coorY
+addDifferentPoints :: Point -> Point -> Integer -> Point
+addDifferentPoints p q modulo = Point coorX coorY
     where
-        s
-            | x p == x q && y p == y q = ((3*(x p)*(x p) + a) * (modInverse (2*y p) modulo)) `mod` modulo
-            | otherwise = ((y p - y q) * (modInverse (x p - x q) modulo)) `mod` modulo
+        s = ((y p - y q) * (modInverse (x p - x q) modulo)) `mod` modulo
         coorX = mod (s*s - (x p) - (x q)) modulo
         coorY = mod (s * (x p - coorX) - y p) modulo
 
@@ -165,15 +162,16 @@ addPoints p q a modulo
     | x q == y q && y q == 0 = p
     | x p == x q && y p /= y q = Point 0 0
     | x p == x q && y p == y q && y p == 0 = Point 0 0
-    | otherwise = addPoints' p q a modulo
+    | x p == x q && y p == y q = doublePoint p a modulo
+    | otherwise = addDifferentPoints p q modulo
 
 --doubles point in integer ec arithmetic
 doublePoint :: Point -> Integer -> Integer -> Point
 doublePoint p a modulo = Point coorX coorY
-        where
-    s = mod ((3*(x p)*(x p) + a) * (modInverse (2*(y p)) modulo)) modulo
-    coorX = mod (s*s - 2*(x p)) modulo
-    coorY = mod (s * (x p - coorX) - y p) modulo
+    where
+        s = mod ((3*(x p)*(x p) + a) * (modInverse (2*(y p)) modulo)) modulo
+        coorX = mod (s*s - 2*(x p)) modulo
+        coorY = mod (s * (x p - coorX) - y p) modulo
 
 --multiplies point in integer ec arithmetic
 mulPoint :: Point -> Integer -> Integer -> Integer -> Point
