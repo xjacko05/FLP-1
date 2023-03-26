@@ -3,10 +3,10 @@ all:
 
 .PHONY: test
 test:
-	./test.sh
-
-	rm  ./tests/*.in ./tests/*.out ./tests/*.real
+	@./test.sh
 
 .PHONY: clean
 clean:
-	rm ./flp22-fun ./*.o ./*.hi
+	@rm ./flp22-fun ./*.o ./*.hi ./*.zip ./tests/*.in ./tests/*.out ./tests/*.real tests/key_self tests/sign_self
+zip:
+	zip -r flp-fun-xjacko05.zip main.hs Makefile test.sh README.md tests
