@@ -18,7 +18,7 @@ Pre testovanie funkčnosti implementácie bolo vytvorených 7 testov.
 5. Overí podpis s nesprávnym kľúčom
 6. Overí poskytnutý podpis pomocou poskytnutého kľuča (rovnaké ako v zadaní)
 7. Overí nesprávny podpis pomocou poskytnutého kľuča (rovnaké ako v zadaní)
-Pre prípad záujmu sú vstupy a výstupy testov zachované až do vykonania ``` make clean```.
+Pre prípad záujmu sú vstupy a výstupy testov zachované až do vykonania ```make clean```.
 
 ## Použitie
 
