@@ -43,6 +43,8 @@ main = do
     let key = parseKey input
     let signature = parseSignature input
     let hash = parseHash input
+    --putStrLn (show (mod ((y (g curve))*(y (g curve))) (p curve)))
+    --putStrLn (show $ (mod ((x (g curve))*(x (g curve))*(x (g curve)) + (a curve)*(x (g curve)) + (b curve)) (p curve)))
     gen <- getStdGen
     case mode of "-i" -> putStrLn (show curve)
                  "-k" -> putStrLn (show $ generateKey curve gen)
@@ -50,7 +52,6 @@ main = do
                  "-v" -> putStrLn (show $ verify curve signature key hash)
                  _ -> error "Invalid option used."
 
-    --putStrLn (show signature)
     --putStrLn (show (fst (randomR (1, n curve) (gen) :: (Integer, StdGen))))
     --putStrLn (show $ addPoints (Point 13 16) (Point 0 0) 1 23)
     --putStrLn (show $ mulPoint (g curve) 91305095057638279798210088207290086814184648949849354342409048655369161716366 (a curve) (p curve))
@@ -60,24 +61,34 @@ main = do
 
 
 getParam :: String -> String -> String
-getParam param input = head $ tail (dropWhile (/=(param ++ ":")) (words input))
+getParam param input = value
+    where
+        parsed = dropWhile (/=(param ++ ":")) (words input)
+        value
+            | parsed == [] = error ("Value of " ++ param ++ " not found.")
+            | otherwise = head $ tail parsed
 
 parseCurve :: String -> Curve
-parseCurve input = Curve { p= read(getParam "p" input) :: Integer,
-                            a= read(getParam "a" input) :: Integer,
-                            b= read(getParam "b" input) :: Integer,
-                            g= Point {
-                                x= read(getParam "x" input) :: Integer,
-                                y= read(getParam "y" input) :: Integer
-                            },
-                            n= read(getParam "n" input) :: Integer,
-                            h= read(getParam "h" input) :: Integer
-                        }
+parseCurve input = checkedCurve
+    where
+        curve = Curve { p= read(getParam "p" input) :: Integer,
+                           a= read(getParam "a" input) :: Integer,
+                           b= read(getParam "b" input) :: Integer,
+                           g= Point {
+                               x= read(getParam "x" input) :: Integer,
+                               y= read(getParam "y" input) :: Integer
+                           },
+                           n= read(getParam "n" input) :: Integer,
+                           h= read(getParam "h" input) :: Integer
+                         }
+        checkedCurve
+            | checkCurveSingularity curve && checkCurvePoint curve (g curve) = curve
+            | otherwise = error ("Curve values not correct")
 
 parseKey :: String -> Key
-parseKey input = Key {  d= read(getParam "d" input) :: Integer,
-                        q= fromSEC $ getParam "Q" input
-                    }
+parseKey input = Key { d= read(getParam "d" input) :: Integer,
+                       q= fromSEC $ getParam "Q" input
+                     }
 
 fromSEC :: String -> Point
 fromSEC input = Point x y
@@ -150,10 +161,13 @@ generateKey curve gen = Key d q
         q = mulPoint (g curve) d (a curve) (p curve)
 
 sign :: Curve -> Key -> Hash -> StdGen -> Signature
-sign curve key hash gen = Signature r s
+sign curve key hash gen = checkedSignature
     where
         (r,k) = getR curve gen
         s = mod ((modInv k (n curve)) * (hash + r*(d key))) (n curve)
+        checkedSignature
+            | not (checkCurvePoint curve (q key)) = error "Q is not on curve"
+            | otherwise = Signature r s
 
 getR :: Curve -> StdGen -> (Integer, Integer)
 getR curve gen = (r,k)
@@ -174,10 +188,19 @@ verify curve signature key hash = val
         u1 = mod (w*hash) (n curve)
         u2 = mod ((r signature)*w) (n curve)
         xy = addPoints (mulPoint (g curve) u1 (a curve) (p curve)) (mulPoint (q key) u2 (a curve) (p curve)) (a curve) (p curve)
-        val = (if mod (r signature) (n curve) == mod (x xy) (n curve) then True else False)
+        val
+            | not (checkCurvePoint curve (q key)) = error "Q is not on curve"
+            | otherwise = (if mod (r signature) (n curve) == mod (x xy) (n curve) then True else False)
 
+checkCurveSingularity :: Curve -> Bool
+checkCurveSingularity curve
+    | 4*(a curve)*(a curve)*(a curve) + 27*(b curve)*(b curve) == 0 = False
+    | otherwise = True
 
-
+checkCurvePoint :: Curve -> Point -> Bool
+checkCurvePoint c k
+    | (mod ((y k)*(y k)) (p c)) == (mod ((x k)*(x k)*(x k) + (a c)*(x k) + (b c)) (p c)) = True
+    | otherwise = False
 
 
 
